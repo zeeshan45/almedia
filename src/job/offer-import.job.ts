@@ -1,36 +1,49 @@
+//src/job/offer-import.job.ts
+import { PROVIDERS } from "../providers/providers.config";
 import { getProviderAdapter } from "../providers/provider.factory";
+import { fetchProviderData } from "../services/http.service";
 import { validateOffer } from "../services/validator.service";
 import { OfferRepository } from "../services/offer.repository";
 import { logger } from "../utils/logger";
 
-import { payload as offer1Payload } from "../payloads/offer1.payload";
-import { payload as offer2Payload } from "../payloads/offer2.payload";
-
 export async function runOfferImportJob() {
   const repo = new OfferRepository();
 
-  const providers = [
-    { name: "offer1", payload: offer1Payload },
-    { name: "offer2", payload: offer2Payload },
-  ];
-
-  for (const provider of providers) {
-    logger.info(`Processing provider: ${provider.name}`);
+  const results = await Promise.allSettled(
+    PROVIDERS.map(async (provider) => {
+      logger.info(`Fetching ${provider.name}`);
+      const data = await fetchProviderData(provider.url);
+      return { provider, data };
+    })
+  );
+  // console.log(results,"results");
+  
+  for (const result of results) {
+    if (result.status !== "fulfilled") {
+      logger.error("Provider fetch failed");
+      continue;
+    }
+    // console.log(result,"result");
+    const { provider, data } = result.value;
+    // console.log(data,"data");
+    console.log(
+  provider.name,
+  "RAW RESPONSE:",
+  JSON.stringify(data, null, 2)
+);
 
     const adapter = getProviderAdapter(provider.name);
-    const offers = adapter.transform(provider.payload);
+    const offers = adapter.transform(data);
 
     for (const offer of offers) {
       const errors = validateOffer(offer);
-
-      if (errors.length > 0) {
-        logger.warn(
-          `Skipping offer ${offer.externalOfferId}: ${errors.join(", ")}`
-        );
+      if (errors.length) {
+        logger.warn(`Skipping ${offer.externalOfferId}`);
         continue;
       }
-
       await repo.upsert(offer);
     }
   }
+
+  logger.info("Offer import job completed");
 }

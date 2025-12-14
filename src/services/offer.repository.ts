@@ -9,7 +9,19 @@ export class OfferRepository {
       .createQueryBuilder()
       .insert()
       .into(Offer)
-      .values(offer)
+      .values({
+        name: offer.name,
+        slug: offer.slug,
+        description: offer.description,
+        requirements: offer.requirements,
+        thumbnail: offer.thumbnail,
+        isDesktop: offer.isDesktop,
+        isAndroid: offer.isAndroid,
+        isIos: offer.isIos,
+        offerUrlTemplate: offer.offerUrlTemplate,
+        providerName: offer.providerName,
+        externalOfferId: offer.externalOfferId,
+      })
       .orUpdate(
         [
           "name",
@@ -24,6 +36,7 @@ export class OfferRepository {
         ],
         ["provider_name", "external_offer_id"]
       )
+      .updateEntity(false) // 🔥 THIS IS THE KEY LINE
       .execute();
   }
 }

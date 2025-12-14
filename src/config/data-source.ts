@@ -1,15 +1,16 @@
-import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { Offer } from "../entity/offer.entity";
+// console.log(process.env.DB_HOST);
 
 export const AppDataSource = new DataSource({
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "PAss123",
-  database: "almedia",
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
   entities: [Offer],
-  synchronize: true, // OK for challenge, false in real prod
+  synchronize: true, // challenge only
   logging: false,
 });
+
